@@ -1,0 +1,4 @@
+# pnpm 11 은 package.json 의 onlyBuiltDependencies 를 안 본다. 여기 맵으로 적는다.
+allowBuilds:
+  esbuild: true
+  "@biomejs/biome": true

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# AI 도구 산출물
+.claude/
+.omc/
