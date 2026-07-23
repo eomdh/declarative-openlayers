@@ -3,7 +3,7 @@ import type OLBaseLayer from "ol/layer/Base";
 import type ImageSource from "ol/source/Image";
 import type TileSource from "ol/source/Tile";
 import type { StyleLike } from "ol/style/Style";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LayerHandle } from "../core/types";
 import { useManager } from "./context";
 
@@ -17,17 +17,22 @@ import { useManager } from "./context";
  */
 function useLayer(register: () => LayerHandle, deps: unknown[]): LayerHandle | null {
   const manager = useManager();
-  const handleRef = useRef<LayerHandle | null>(null);
+  // ref 가 아니라 state 다. 등록 뒤 재렌더가 일어나야 useSync 가 손잡이를 받는다.
+  const [handle, setHandle] = useState<LayerHandle | null>(null);
 
+  // register 는 매 렌더 새로 만들어지므로 deps 로만 제어한다. manager 가 바뀌면
+  // (MapCanvas 가 지도를 다시 만들면) 새 매니저에 다시 등록한다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 등록 조건은 deps 로 명시한다
   useEffect(() => {
-    const handle = register();
-    handleRef.current = handle;
-    return () => manager.remove(handle.key);
-    // register 는 매번 새로 만들어지므로 deps 로 제어한다.
-    // biome-ignore lint/correctness/useExhaustiveDependencies: 등록은 마운트에서 한 번
-  }, deps);
+    const registered = register();
+    setHandle(registered);
+    return () => {
+      manager.remove(registered.key);
+      setHandle(null);
+    };
+  }, [manager, ...deps]);
 
-  return handleRef.current;
+  return handle;
 }
 
 interface CommonProps {
