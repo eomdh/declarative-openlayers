@@ -19,6 +19,9 @@ interface Entry {
  *
  * OL Map 만 있으면 되고 React 는 모른다. zIndex 정렬과 교체 멱등성 같은
  * 어려운 부분을 프레임워크 없이 테스트하려는 분리다.
+ *
+ * 레이어를 바꾼 뒤에는 매번 render 를 부른다. 생성 후 addLayer 로 붙인 타일은
+ * 로드가 끝나도 자동 렌더가 안 걸리는 경우가 있어서, 변경마다 렌더를 요청한다.
  */
 export class LayerManager {
   private readonly map: OLMap;
@@ -41,6 +44,7 @@ export class LayerManager {
     layer.setZIndex(zIndex);
     this.entries.set(key, { kind: spec.kind, layer, zIndex });
     this.map.addLayer(layer);
+    this.map.render();
 
     return { key, kind: spec.kind };
   }
@@ -50,17 +54,20 @@ export class LayerManager {
     if (entry) {
       this.map.removeLayer(entry.layer);
       this.entries.delete(key);
+      this.map.render();
     }
   }
 
   setVisible(handle: LayerHandle, visible: boolean): void {
     this.entry(handle).layer.setVisible(visible);
+    this.map.render();
   }
 
   setZIndex(handle: LayerHandle, zIndex: number): void {
     const entry = this.entry(handle);
     entry.zIndex = zIndex;
     entry.layer.setZIndex(zIndex);
+    this.map.render();
   }
 
   /**
@@ -76,6 +83,7 @@ export class LayerManager {
     }
     source.clear();
     source.addFeatures(features);
+    this.map.render();
   }
 
   /** 등록 순서가 아니라 zIndex 순으로 돌려준다. 레이어 목록 UI 가 이걸 그린다. */
